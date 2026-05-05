@@ -1,0 +1,81 @@
+{
+  "_last_updated": "2026-05-04",
+  "_source": "https://openai.com/pricing + https://www.anthropic.com/pricing",
+  "_note": "Ollama models are free (local inference). Update paid models periodically.",
+  "qwen2.5:0.5b": {
+    "input_per_1k": 0.0,
+    "output_per_1k": 0.0
+  },
+  "qwen2.5:1.5b": {
+    "input_per_1k": 0.0,
+    "output_per_1k": 0.0
+  },
+  "qwen2.5:3b": {
+    "input_per_1k": 0.0,
+    "output_per_1k": 0.0
+  },
+  "qwen2.5:7b": {
+    "input_per_1k": 0.0,
+    "output_per_1k": 0.0
+  },
+  "llama3.2": {
+    "input_per_1k": 0.0,
+    "output_per_1k": 0.0
+  },
+  "llama3.2:1b": {
+    "input_per_1k": 0.0,
+    "output_per_1k": 0.0
+  },
+  "llama3.1": {
+    "input_per_1k": 0.0,
+    "output_per_1k": 0.0
+  },
+  "phi3.5": {
+    "input_per_1k": 0.0,
+    "output_per_1k": 0.0
+  },
+  "phi3": {
+    "input_per_1k": 0.0,
+    "output_per_1k": 0.0
+  },
+  "mistral": {
+    "input_per_1k": 0.0,
+    "output_per_1k": 0.0
+  },
+  "gemma2:2b": {
+    "input_per_1k": 0.0,
+    "output_per_1k": 0.0
+  },
+  "deepseek-r1:1.5b": {
+    "input_per_1k": 0.0,
+    "output_per_1k": 0.0
+  },
+  "gpt-4o": {
+    "input_per_1k": 0.005,
+    "output_per_1k": 0.015
+  },
+  "gpt-4o-mini": {
+    "input_per_1k": 0.00015,
+    "output_per_1k": 0.0006
+  },
+  "gpt-4-turbo": {
+    "input_per_1k": 0.01,
+    "output_per_1k": 0.03
+  },
+  "gpt-3.5-turbo": {
+    "input_per_1k": 0.0005,
+    "output_per_1k": 0.0015
+  },
+  "claude-3-5-sonnet-20241022": {
+    "input_per_1k": 0.003,
+    "output_per_1k": 0.015
+  },
+  "claude-3-5-haiku-20241022": {
+    "input_per_1k": 0.001,
+    "output_per_1k": 0.005
+  },
+  "claude-3-opus-20240229": {
+    "input_per_1k": 0.015,
+    "output_per_1k": 0.075
+  }
+}

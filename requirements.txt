@@ -1,0 +1,32 @@
+# ============================================================
+# llm-watchdog — Development Requirements
+# ============================================================
+# Install with: pip install -r requirements.txt
+# Zero paid services. Zero cloud. Ollama handles all LLM calls.
+# ============================================================
+
+# --- Core Runtime Dependencies ---
+click>=8.0              # CLI framework (summary, tail, top commands)
+openai>=1.0             # SDK — works with Ollama (free) AND OpenAI (paid, optional)
+
+# --- Testing ---
+pytest>=8.0             # Test runner
+pytest-mock>=3.12       # MagicMock fixtures
+pytest-cov>=5.0         # Coverage reports
+
+# --- Code Quality ---
+ruff>=0.4               # Linter + formatter (replaces flake8 + black)
+mypy>=1.10              # Static type checker
+
+# --- Build & Publish ---
+build>=1.2              # python -m build → creates dist/
+twine>=5.0              # twine upload dist/* → PyPI
+
+# ============================================================
+# NOT included (intentionally):
+#   tiktoken     — removed, we use response.usage directly
+#   anthropic    — optional, install separately if needed
+#   sqlalchemy   — overkill, we use stdlib sqlite3
+#   pydantic     — overkill, we use stdlib dataclasses
+#   pandas       — overkill, export is a for loop
+# ============================================================
