@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import sqlite3
+import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
@@ -10,24 +11,24 @@ from llm_watchdog.storage.models import CallLog
 
 # DB location                                                          
 
-DEFAULT_DB_DIR = Path.home() / ".llm-watchdog"
+DEFAULT_DB_DIR  = Path.home() / ".llm-watchdog"
 DEFAULT_DB_PATH = DEFAULT_DB_DIR / "logs.db"
 
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS call_logs (
-    id          TEXT    PRIMARY KEY,
-    timestamp   TEXT    NOT NULL,
-    provider    TEXT    NOT NULL,
-    model       TEXT    NOT NULL,
+    id            TEXT    PRIMARY KEY,
+    timestamp     TEXT    NOT NULL,
+    provider      TEXT    NOT NULL,
+    model         TEXT    NOT NULL,
     input_tokens  INTEGER NOT NULL DEFAULT 0,
     output_tokens INTEGER NOT NULL DEFAULT 0,
-    cost_usd    REAL    NOT NULL DEFAULT 0.0,
-    latency_ms  REAL    NOT NULL DEFAULT 0.0,
-    success     INTEGER NOT NULL DEFAULT 1,
-    tag         TEXT,
-    user_id     TEXT,
-    session_id  TEXT,
-    error_msg   TEXT
+    cost_usd      REAL    NOT NULL DEFAULT 0.0,
+    latency_ms    REAL    NOT NULL DEFAULT 0.0,
+    success       INTEGER NOT NULL DEFAULT 1,
+    tag           TEXT,
+    user_id       TEXT,
+    session_id    TEXT,
+    error_msg     TEXT
 );
 """
 
@@ -37,7 +38,7 @@ CREATE TABLE IF NOT EXISTS call_logs (
 def init_db(db_path: Optional[Path] = None) -> Path:
     """Create the database file and schema if they don't exist.
 
-    Returns the resolved path used so callers always know where the DB is.
+    Returns the resolved path so callers always know where the DB is.
     """
     resolved = Path(db_path) if db_path is not None else DEFAULT_DB_PATH
     resolved.parent.mkdir(parents=True, exist_ok=True)
@@ -49,8 +50,18 @@ def init_db(db_path: Optional[Path] = None) -> Path:
 
 
 def insert_log(call_log: CallLog, db_path: Optional[Path] = None) -> None:
-    """Persist a CallLog entry to the database."""
+    """Persist a CallLog entry to the database.
+
+    If ``call_log.id`` is None a fresh UUID is generated automatically
+    so callers can pass a plain ``CallLog()`` without pre-setting an id.
+    The ``call_log.id`` field is mutated in-place so the caller can
+    inspect it after insertion if needed.
+    """
     resolved = _resolve_path(db_path)
+
+    # Auto-assign id if not set
+    if call_log.id is None:
+        call_log.id = str(uuid.uuid4())
 
     row = (
         call_log.id,
@@ -92,7 +103,6 @@ def query_logs(
 ) -> list[CallLog]:
     """Query call logs with optional filters.
 
-    All keyword arguments are optional; omitting them returns everything.
     Results are ordered newest-first.
     """
     resolved = _resolve_path(db_path)
@@ -118,7 +128,7 @@ def query_logs(
     if success_only:
         conditions.append("success = 1")
 
-    where = ("WHERE " + " AND ".join(conditions)) if conditions else ""
+    where        = ("WHERE " + " AND ".join(conditions)) if conditions else ""
     limit_clause = f"LIMIT {int(limit)}" if limit is not None else ""
 
     sql = f"""
@@ -132,7 +142,7 @@ def query_logs(
 
     with _connect(resolved) as conn:
         cursor = conn.execute(sql, params)
-        rows = cursor.fetchall()
+        rows   = cursor.fetchall()
 
     return [_row_to_calllog(row) for row in rows]
 
@@ -157,7 +167,7 @@ def get_total_cost(
         params.append(since.isoformat())
 
     where = ("WHERE " + " AND ".join(conditions)) if conditions else ""
-    sql = f"SELECT COALESCE(SUM(cost_usd), 0.0) FROM call_logs {where}"
+    sql   = f"SELECT COALESCE(SUM(cost_usd), 0.0) FROM call_logs {where}"
 
     with _connect(resolved) as conn:
         row = conn.execute(sql, params).fetchone()
@@ -169,7 +179,7 @@ def get_total_cost(
 
 def _connect(db_path: Path) -> sqlite3.Connection:
     conn = sqlite3.connect(str(db_path))
-    conn.execute("PRAGMA journal_mode=WAL")   # safe for concurrent writers
+    conn.execute("PRAGMA journal_mode=WAL")
     conn.row_factory = sqlite3.Row
     return conn
 
@@ -180,17 +190,17 @@ def _resolve_path(db_path: Optional[Path]) -> Path:
 
 def _row_to_calllog(row: sqlite3.Row) -> CallLog:
     return CallLog(
-        id=row["id"],
-        timestamp=datetime.fromisoformat(row["timestamp"]),
-        provider=row["provider"],
-        model=row["model"],
-        input_tokens=row["input_tokens"],
-        output_tokens=row["output_tokens"],
-        cost_usd=row["cost_usd"],
-        latency_ms=row["latency_ms"],
-        success=bool(row["success"]),
-        tag=row["tag"],
-        user_id=row["user_id"],
-        session_id=row["session_id"],
-        error_msg=row["error_msg"],
+        id            = row["id"],
+        timestamp     = datetime.fromisoformat(row["timestamp"]),
+        provider      = row["provider"],
+        model         = row["model"],
+        input_tokens  = row["input_tokens"],
+        output_tokens = row["output_tokens"],
+        cost_usd      = row["cost_usd"],
+        latency_ms    = row["latency_ms"],
+        success       = bool(row["success"]),
+        tag           = row["tag"],
+        user_id       = row["user_id"],
+        session_id    = row["session_id"],
+        error_msg     = row["error_msg"],
     )

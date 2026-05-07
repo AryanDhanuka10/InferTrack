@@ -46,8 +46,8 @@ class TestCallLog:
         assert sample_log.total_tokens == 30
 
     def test_auto_id_generated(self, sample_log):
-        assert sample_log.id is not None
-        assert len(sample_log.id) == 36  # UUID4 string
+        # id is None until inserted into the DB (auto-assigned by insert_log)
+        assert sample_log.id is None
 
     def test_auto_timestamp_utc(self, sample_log):
         assert sample_log.timestamp.tzinfo is not None
@@ -57,11 +57,16 @@ class TestCallLog:
         parsed = datetime.fromisoformat(iso)
         assert abs((parsed - sample_log.timestamp).total_seconds()) < 0.001
 
-    def test_unique_ids_per_instance(self):
+    def test_unique_ids_after_insert(self, tmp_db):
+        """Each CallLog gets a unique UUID assigned by insert_log."""
         a = CallLog(provider="openai", model="x", input_tokens=1,
                     output_tokens=1, cost_usd=0.0, latency_ms=1.0, success=True)
         b = CallLog(provider="openai", model="x", input_tokens=1,
                     output_tokens=1, cost_usd=0.0, latency_ms=1.0, success=True)
+        insert_log(a, db_path=tmp_db)
+        insert_log(b, db_path=tmp_db)
+        assert a.id is not None
+        assert b.id is not None
         assert a.id != b.id
 
     def test_optional_fields_default_none(self):
