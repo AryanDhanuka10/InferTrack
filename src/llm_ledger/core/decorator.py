@@ -6,6 +6,7 @@ import time
 from typing import Any, Callable, Optional, TypeVar
 
 from llm_ledger.providers.openai import OpenAIProvider
+from llm_ledger.providers.anthropic import AnthropicProvider
 from llm_ledger.pricing.table import calculate_cost
 from llm_ledger.storage.models import CallLog
 from llm_ledger.storage.db import insert_log, init_db, DEFAULT_DB_PATH
@@ -17,6 +18,7 @@ F = TypeVar("F", bound=Callable[..., Any])
 # Registry of provider detectors — Day 8 will add AnthropicProvider
 _PROVIDERS = [
     OpenAIProvider(),
+    AnthropicProvider(),
 ]
 
 

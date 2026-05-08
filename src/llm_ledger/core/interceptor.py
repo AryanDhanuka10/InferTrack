@@ -21,13 +21,17 @@ from pathlib import Path
 from typing import Any, Optional
 
 from llm_ledger.providers.openai import OpenAIProvider
+from llm_ledger.providers.anthropic import AnthropicProvider
 from llm_ledger.pricing.table import calculate_cost
 from llm_ledger.storage.models import CallLog
 from llm_ledger.storage.db import insert_log, init_db, DEFAULT_DB_PATH
 
 # Module-level state                                                   
 
-_provider = OpenAIProvider()
+_PROVIDERS = [
+    OpenAIProvider(),
+    AnthropicProvider(),
+]
 
 # Stores original methods so stop() can restore them
 _originals: dict[str, Any] = {}
@@ -77,12 +81,13 @@ def _make_wrapper(original_fn, db_path: Path):
                 session_id = cfg["session_id"],
             )
         else:
-            if _provider.detect(response):
+            _matched = next((p for p in _PROVIDERS if p.detect(response)), None)
+            if _matched is not None:
                 try:
-                    inp, out  = _provider.extract_usage(response)
-                    model     = _provider.extract_model(response)
+                    inp, out  = _matched.extract_usage(response)
+                    model     = _matched.extract_model(response)
                     cost      = calculate_cost(model, inp, out)
-                    prov_name = _provider.name
+                    prov_name = _matched.name
                     success   = True
                     error_msg = None
                 except Exception as parse_exc:
@@ -201,6 +206,23 @@ def intercept(
             f"Error: {exc}"
         ) from exc
 
+    # ---- Patch anthropic.messages.create (optional — skip if not installed) ----
+    try:
+        from anthropic.resources.messages import Messages
+        original_anthropic = Messages.create
+        _originals["anthropic.Messages.create"] = original_anthropic
+        Messages.create = _make_wrapper(original_anthropic, resolved_db)
+    except ImportError:
+        pass   # anthropic not installed — that's fine
+    except AttributeError as exc:
+        # anthropic installed but internal structure changed — warn, don't crash
+        import warnings
+        warnings.warn(
+            f"llm_ledger: could not patch anthropic.Messages.create: {exc}. "
+            f"Anthropic calls will not be intercepted.",
+            stacklevel=2,
+        )
+
 
 def stop() -> None:
     """Restore all original methods patched by ``intercept()``.
@@ -220,6 +242,13 @@ def stop() -> None:
         from openai.resources.chat.completions import Completions
         if "openai.Completions.create" in _originals:
             Completions.create = _originals.pop("openai.Completions.create")
+    except (ImportError, AttributeError):
+        pass
+
+    try:
+        from anthropic.resources.messages import Messages
+        if "anthropic.Messages.create" in _originals:
+            Messages.create = _originals.pop("anthropic.Messages.create")
     except (ImportError, AttributeError):
         pass
 

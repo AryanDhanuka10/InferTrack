@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any, Generator, Optional
 
 from llm_ledger.providers.openai import OpenAIProvider
+from llm_ledger.providers.anthropic import AnthropicProvider
 from llm_ledger.pricing.table import calculate_cost
 from llm_ledger.storage.models import CallLog
 from llm_ledger.storage.db import insert_log, init_db, DEFAULT_DB_PATH
@@ -15,6 +16,7 @@ from llm_ledger.storage.db import insert_log, init_db, DEFAULT_DB_PATH
 # Same provider registry as decorator — kept in sync manually until Day 8
 _PROVIDERS = [
     OpenAIProvider(),
+    AnthropicProvider(),
 ]
 
 
