@@ -10,12 +10,12 @@ from llm_ledger.providers.anthropic import AnthropicProvider
 from llm_ledger.pricing.table import calculate_cost
 from llm_ledger.storage.models import CallLog
 from llm_ledger.storage.db import insert_log, init_db, DEFAULT_DB_PATH
+from llm_ledger.core.streaming import is_streaming_response, StreamingWrapper
 
 from pathlib import Path
 
 F = TypeVar("F", bound=Callable[..., Any])
 
-# Registry of provider detectors — Day 8 will add AnthropicProvider
 _PROVIDERS = [
     OpenAIProvider(),
     AnthropicProvider(),
@@ -40,7 +40,7 @@ def _build_log(
     session_id: Optional[str],
     retry_count: int = 0,
 ) -> CallLog:
-    """Build a CallLog from a completed (or failed) call."""
+    """Build a CallLog from a completed (or failed) non-streaming call."""
     if exc_caught is not None:
         return CallLog(
             provider      = "unknown",
@@ -61,22 +61,22 @@ def _build_log(
     if provider is not None:
         try:
             input_tokens, output_tokens = provider.extract_usage(response)
-            model        = provider.extract_model(response)
-            cost_usd     = calculate_cost(model, input_tokens, output_tokens)
+            model         = provider.extract_model(response)
+            cost_usd      = calculate_cost(model, input_tokens, output_tokens)
             provider_name = provider.name
-            parse_error  = None
+            parse_error   = None
         except Exception as parse_exc:
             input_tokens = output_tokens = 0
-            cost_usd     = 0.0
-            model        = "unknown"
+            cost_usd      = 0.0
+            model         = "unknown"
             provider_name = "unknown"
-            parse_error  = parse_exc
+            parse_error   = parse_exc
     else:
         input_tokens = output_tokens = 0
-        cost_usd     = 0.0
-        model        = "unknown"
+        cost_usd      = 0.0
+        model         = "unknown"
         provider_name = "unknown"
-        parse_error  = None
+        parse_error   = None
 
     return CallLog(
         provider      = provider_name,
@@ -106,19 +106,25 @@ def watchdog(
 ) -> Callable[[F], F]:
     """Decorator that records every LLM call to the local SQLite log.
 
-    Usage::
+    Works with both regular and streaming responses::
 
-        @watchdog(tag="summarise", user_id="alice")
-        def ask(prompt: str):
-            return client.chat.completions.create(...)
+        # Non-streaming (existing behaviour)
+        @watchdog(tag="summarise")
+        def ask(prompt):
+            return client.chat.completions.create(model=..., messages=...)
 
-        # With automatic retry on transient failures:
-        @watchdog(retry=3, backoff="exponential")
-        def resilient_ask(prompt: str):
-            return client.chat.completions.create(...)
+        # Streaming — usage logged after stream is exhausted
+        @watchdog(tag="stream")
+        def ask_stream(prompt):
+            return client.chat.completions.create(
+                model=..., messages=...,
+                stream=True,
+                stream_options={"include_usage": True},  # required for token counts
+            )
 
-    The decorated function must **return the raw API response object**
-    so the decorator can extract token counts and model name.
+        for chunk in ask_stream("hello"):
+            print(chunk.choices[0].delta.content or "", end="")
+        # CallLog written to DB after last chunk is consumed
 
     Args:
         tag:        Arbitrary label for grouping calls in the CLI.
@@ -137,10 +143,9 @@ def watchdog(
             init_db(resolved_db)
 
             if retry > 0:
-                # Import here to avoid circular imports at module load time
                 from llm_ledger.core.retry import with_retry
 
-                retry_count  = 0
+                retry_count: int = 0
                 exc_caught: Optional[Exception] = None
                 response: Any = None
 
@@ -166,10 +171,9 @@ def watchdog(
                 latency_ms = (time.perf_counter() - t_start) * 1000
 
             else:
-                # Fast path — no retry overhead
-                t_start    = time.perf_counter()
-                exc_caught = None
-                response   = None
+                t_start     = time.perf_counter()
+                exc_caught  = None
+                response    = None
                 retry_count = 0
 
                 try:
@@ -179,9 +183,56 @@ def watchdog(
 
                 latency_ms = (time.perf_counter() - t_start) * 1000
 
+            # ---- Failed call (exception before any response) ----
+            if exc_caught is not None:
+                log = _build_log(
+                    response    = None,
+                    exc_caught  = exc_caught,
+                    latency_ms  = latency_ms,
+                    tag         = tag,
+                    user_id     = user_id,
+                    session_id  = session_id,
+                    retry_count = retry_count,
+                )
+                insert_log(log, db_path=resolved_db)
+                raise exc_caught
+
+            # ---- Streaming response ----
+            if is_streaming_response(response):
+                def _on_stream_complete(
+                    model: str,
+                    input_tokens: int,
+                    output_tokens: int,
+                    stream_latency_ms: float,
+                    success: bool,
+                    error_msg: Optional[str],
+                ) -> None:
+                    cost = calculate_cost(model, input_tokens, output_tokens)
+                    log  = CallLog(
+                        provider      = "openai",   # streams are OpenAI only for now
+                        model         = model,
+                        input_tokens  = input_tokens,
+                        output_tokens = output_tokens,
+                        cost_usd      = cost,
+                        latency_ms    = stream_latency_ms,
+                        success       = success,
+                        error_msg     = error_msg,
+                        tag           = tag,
+                        user_id       = user_id,
+                        session_id    = session_id,
+                    )
+                    insert_log(log, db_path=resolved_db)
+
+                return StreamingWrapper(
+                    response,
+                    on_complete = _on_stream_complete,
+                    t_start     = t_start,
+                )
+
+            # ---- Normal (non-streaming) response ----
             log = _build_log(
                 response    = response,
-                exc_caught  = exc_caught,
+                exc_caught  = None,
                 latency_ms  = latency_ms,
                 tag         = tag,
                 user_id     = user_id,
@@ -189,10 +240,6 @@ def watchdog(
                 retry_count = retry_count,
             )
             insert_log(log, db_path=resolved_db)
-
-            if exc_caught is not None:
-                raise exc_caught
-
             return response
 
         return wrapper  # type: ignore[return-value]
