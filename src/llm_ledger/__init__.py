@@ -22,20 +22,25 @@ Quick start::
     # Budget enforcement
     with Budget(max_usd=0.10, user_id="alice") as b:
         b.add_response(client.chat.completions.create(...))
+
+    # Zero-code-change global intercept
+    import llm_ledger
+    llm_ledger.intercept(tag="my-app")
+    # all subsequent client.chat.completions.create() calls are logged
 """
 
-__version__ = "0.1.0"
+__version__ = "1.0.0"
 
 from llm_ledger.core.decorator import watchdog
 from llm_ledger.core.context import watch, WatchContext
 from llm_ledger.core.budget import Budget, BudgetContext
+from llm_ledger.core.interceptor import intercept, stop, is_active
 from llm_ledger.exceptions import (
     WatchdogError,
     BudgetExceeded,
     ProviderNotDetected,
     PricingModelNotFound,
 )
-from llm_ledger.core.interceptor import intercept, stop, is_active
 
 __all__ = [
     # Core API
@@ -44,6 +49,10 @@ __all__ = [
     "WatchContext",
     "Budget",
     "BudgetContext",
+    # Interceptor
+    "intercept",
+    "stop",
+    "is_active",
     # Exceptions
     "WatchdogError",
     "BudgetExceeded",
