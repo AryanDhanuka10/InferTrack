@@ -9,7 +9,7 @@ description = "Zero-config LLM call interceptor: cost, latency, and budget enfor
 readme = "README.md"
 license = { text = "MIT" }
 requires-python = ">=3.10"
-authors = [{ name = "Your Name", email = "you@example.com" }]
+authors = [{ name = "Aryan Dhanuka", email = "a9936067905@gmail.com" }]
 keywords = ["llm", "openai", "ollama", "anthropic", "cost", "monitoring", "tokens", "observability"]
 classifiers = [
     "Development Status :: 5 - Production/Stable",
@@ -41,9 +41,9 @@ dev = [
 watchdog = "infertrack.cli.__main__:cli"
 
 [project.urls]
-Repository = "https://github.com/yourname/infertrack"
-"Bug Tracker" = "https://github.com/yourname/infertrack/issues"
-Changelog = "https://github.com/yourname/infertrack/blob/main/CHANGELOG.md"
+Repository = "https://github.com/AryanDhanuka10/InferTrack"
+"Bug Tracker" = "https://github.com/AryanDhanuka10/InferTrack/issues"
+Changelog = "https://github.com/AryanDhanuka10/InferTrack/blob/main/CHANGELOG.md"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/infertrack"]
