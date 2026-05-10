@@ -14,7 +14,7 @@ from unittest.mock import MagicMock, patch
 from llm_ledger.storage.db import init_db, query_logs
 
 
-# Build a minimal fake openai module tree before any test runs         
+# Build a minimal fake openai module tree before any test runs         #
 
 def _build_fake_openai():
     """Construct a fake openai package in sys.modules.
@@ -164,20 +164,33 @@ class TestInterceptorState:
 
 class TestInterceptorPatching:
 
+    def _live_completions(self):
+        """Always read Completions fresh from sys.modules to avoid
+        cross-module class identity issues when multiple test files
+        each register a fake openai module."""
+        import sys
+        return sys.modules["openai.resources.chat.completions"].Completions
+
     def test_intercept_replaces_completions_create(self, tmp_db):
-        original = FakeCompletions.create
+        """intercept() must store the original and replace it."""
         _do_intercept(tmp_db)
-        assert FakeCompletions.create is not original
+        assert "openai.Completions.create" in imod._originals
+        live = self._live_completions()
+        # Current method on the live class must differ from the stored original
+        assert live.create is not imod._originals["openai.Completions.create"]
 
     def test_stop_restores_completions_create(self, tmp_db):
-        original = FakeCompletions.create
+        """stop() must restore Completions.create to exactly the original."""
         _do_intercept(tmp_db)
+        stored_original = imod._originals["openai.Completions.create"]
         stop()
-        assert FakeCompletions.create is original
+        live = self._live_completions()
+        assert live.create is stored_original
 
     def test_wrapper_preserves_function_name(self, tmp_db):
         _do_intercept(tmp_db)
-        assert FakeCompletions.create.__name__ == "create"
+        live = self._live_completions()
+        assert live.create.__name__ == "create"
 
 
 # Logging behaviour                                                    

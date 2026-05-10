@@ -18,9 +18,7 @@ from llm_ledger.pricing.table import (
 from llm_ledger.providers.openai import OpenAIProvider
 
 
-# ------------------------------------------------------------------ #
-# Helpers                                                              #
-# ------------------------------------------------------------------ #
+# Helpers                                                              
 
 def make_openai_response(
     model: str = "qwen2.5:0.5b",
@@ -36,9 +34,7 @@ def make_openai_response(
     return resp
 
 
-# ================================================================== #
-# pricing/table.py                                                    #
-# ================================================================== #
+# pricing/table.py                                                
 
 class TestCalculateCost:
     """Tests for calculate_cost()."""
@@ -170,9 +166,7 @@ class TestReload:
         assert abs(before - after) < 1e-12
 
 
-# ================================================================== #
-# providers/base.py                                                   #
-# ================================================================== #
+# providers/base.py                                               
 
 class TestBaseProviderInterface:
     def test_cannot_instantiate_base(self):
@@ -181,9 +175,7 @@ class TestBaseProviderInterface:
             BaseProvider()  # type: ignore
 
 
-# ================================================================== #
-# providers/openai.py                                                 #
-# ================================================================== #
+# providers/openai.py                                                 
 
 class TestOpenAIProviderDetect:
     def setup_method(self):

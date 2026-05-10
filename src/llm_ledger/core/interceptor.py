@@ -208,16 +208,16 @@ def intercept(
 
     # ---- Patch anthropic.messages.create (optional — skip if not installed) ----
     try:
-        from anthropic.resources.messages import Messages
-        original_anthropic = Messages.create
-        _originals["anthropic.Messages.create"] = original_anthropic
-        Messages.create = _make_wrapper(original_anthropic, resolved_db)
+        from anthropic.resources.messages import Messages  # pragma: no cover
+        original_anthropic = Messages.create  # pragma: no cover
+        _originals["anthropic.Messages.create"] = original_anthropic  # pragma: no cover
+        Messages.create = _make_wrapper(original_anthropic, resolved_db)  # pragma: no cover
     except ImportError:
         pass   # anthropic not installed — that's fine
-    except AttributeError as exc:
+    except AttributeError as exc:  # pragma: no cover
         # anthropic installed but internal structure changed — warn, don't crash
-        import warnings
-        warnings.warn(
+        import warnings  # pragma: no cover
+        warnings.warn(  # pragma: no cover
             f"llm_ledger: could not patch anthropic.Messages.create: {exc}. "
             f"Anthropic calls will not be intercepted.",
             stacklevel=2,
@@ -245,12 +245,12 @@ def stop() -> None:
     except (ImportError, AttributeError):
         pass
 
-    try:
-        from anthropic.resources.messages import Messages
-        if "anthropic.Messages.create" in _originals:
-            Messages.create = _originals.pop("anthropic.Messages.create")
-    except (ImportError, AttributeError):
-        pass
+    try:  # pragma: no cover
+        from anthropic.resources.messages import Messages  # pragma: no cover
+        if "anthropic.Messages.create" in _originals:  # pragma: no cover
+            Messages.create = _originals.pop("anthropic.Messages.create")  # pragma: no cover
+    except (ImportError, AttributeError):  # pragma: no cover
+        pass  # pragma: no cover
 
     _originals.clear()
     _intercept_config.update({

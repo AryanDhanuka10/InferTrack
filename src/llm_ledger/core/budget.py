@@ -33,9 +33,7 @@ def _detect_and_cost(response: Any) -> tuple[str, str, int, int, float]:
     return "unknown", "unknown", 0, 0, 0.0
 
 
-# ------------------------------------------------------------------ #
-# BudgetContext — yielded object                                        #
-# ------------------------------------------------------------------ #
+# BudgetContext — yielded object                                    
 
 class BudgetContext:
     """Live view of spend within a ``with Budget(...) as b:`` block.
@@ -67,9 +65,7 @@ class BudgetContext:
         self.spent_usd: float = prior_spend
         self.call_count: int  = 0
 
-    # ---------------------------------------------------------------- #
-    # Public                                                             #
-    # ---------------------------------------------------------------- #
+    # Public                                                             
 
     def add_response(self, response: Any) -> None:
         """Register a raw API response, accumulate cost, enforce budget.
@@ -111,9 +107,7 @@ class BudgetContext:
                 user_id = self._user_id,
             )
 
-    # ---------------------------------------------------------------- #
-    # Internal helpers                                                   #
-    # ---------------------------------------------------------------- #
+    # Internal helpers                                                   
 
     @property
     def remaining_usd(self) -> float:
@@ -125,9 +119,7 @@ class BudgetContext:
         return self.spent_usd > self._max_usd
 
 
-# ------------------------------------------------------------------ #
-# Budget() — public context manager                                    #
-# ------------------------------------------------------------------ #
+# Budget() — public context manager                                    
 
 @contextmanager
 def Budget(
