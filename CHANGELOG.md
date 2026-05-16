@@ -6,6 +6,15 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 Versioning follows [Semantic Versioning](https://semver.org/).
 
 ---
+## [1.0.3] - 2026-05-10
+
+### Fixed
+- test_coverage_gaps.py: _get_completions_class() now works whether
+  real openai is installed or not (fixes KeyError on fresh environments)
+
+### Added
+- tests/integration/: full integration test suite for real Ollama calls
+  covering @watchdog, watch(), Budget(), intercept(), streaming, and CLI
 
 ## [1.0.1] - 2026-05-10
 

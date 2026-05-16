@@ -29,7 +29,7 @@ Quick start::
     # all subsequent client.chat.completions.create() calls are logged
 """
 
-__version__ = "1.0.0"
+__version__ = "1.0.3"
 
 from infertrack.core.decorator import watchdog
 from infertrack.core.context import watch, WatchContext

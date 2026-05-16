@@ -13,7 +13,6 @@ Gaps addressed:
 from __future__ import annotations
 
 import sys
-import types
 import pytest
 from pathlib import Path
 from unittest.mock import MagicMock, patch
@@ -72,12 +71,22 @@ class TestExceptionMessages:
 # interceptor.py — uncovered paths                                    
 
 # Build fake openai if not present (same pattern as test_interceptor.py)
-def _ensure_fake_openai():
-    if "openai" not in sys.modules:
-        openai_mod  = types.ModuleType("openai")
-        res_mod     = types.ModuleType("openai.resources")
-        chat_mod    = types.ModuleType("openai.resources.chat")
-        comp_mod    = types.ModuleType("openai.resources.chat.completions")
+# Get Completions class -- works whether real openai is installed or not
+def _get_completions_class():
+    """Return Completions from real openai if installed, else build a minimal fake."""
+    try:
+        from openai.resources.chat.completions import Completions
+        return Completions
+    except ImportError:
+        pass
+
+    # Real openai not installed (e.g. CI container) -- build minimal fake
+    import sys, types as _types
+    if "openai.resources.chat.completions" not in sys.modules:
+        openai_mod = _types.ModuleType("openai")
+        res_mod    = _types.ModuleType("openai.resources")
+        chat_mod   = _types.ModuleType("openai.resources.chat")
+        comp_mod   = _types.ModuleType("openai.resources.chat.completions")
 
         class Completions:
             def create(self, *a, **k): raise NotImplementedError
@@ -87,15 +96,15 @@ def _ensure_fake_openai():
         res_mod.chat         = chat_mod
         openai_mod.resources = res_mod
 
-        sys.modules.setdefault("openai", openai_mod)
-        sys.modules.setdefault("openai.resources", res_mod)
-        sys.modules.setdefault("openai.resources.chat", chat_mod)
-        sys.modules.setdefault("openai.resources.chat.completions", comp_mod)
+        sys.modules["openai"]                              = openai_mod
+        sys.modules["openai.resources"]                    = res_mod
+        sys.modules["openai.resources.chat"]               = chat_mod
+        sys.modules["openai.resources.chat.completions"]   = comp_mod
 
     return sys.modules["openai.resources.chat.completions"].Completions
 
 
-FakeCompletions = _ensure_fake_openai()
+FakeCompletions = _get_completions_class()
 _original_create = FakeCompletions.create
 
 import infertrack.core.interceptor as imod
